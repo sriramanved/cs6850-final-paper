@@ -9,11 +9,12 @@ def txt_to_distance_matrix(txt):
     txt: txt file with distance matrix
     return: distance matrix
     """
-    with open(txt) as f:
+    path = "../data/"
+    with open(path + txt, "r") as f:
         lines = f.readlines()
     distance_matrix = []
     for line in lines:
-        distance_matrix.append([int(i) for i in line.split()])
+        distance_matrix.append([(int(float(i))) for i in line.split(",")])
     return distance_matrix
 
 
@@ -23,6 +24,7 @@ def create_data_model():
     data["distance_matrix"] = txt_to_distance_matrix("tau.txt")
     data["num_vehicles"] = 1
     data["depot"] = 0
+    data["tau_prime"] = txt_to_distance_matrix("tau_prime.txt")
     print(data["distance_matrix"])
     return data
 
@@ -41,6 +43,8 @@ def print_solution(manager, routing, solution):
         index = solution.Value(routing.NextVar(index))
         route_distance += routing.GetArcCostForVehicle(
             previous_index, index, 0)
+        print("prev index: ", previous_index)
+        print("index: ", index)
         route.append(manager.IndexToNode(index))
         t += [route_distance]
     plan_output += f" {manager.IndexToNode(index)}\n"

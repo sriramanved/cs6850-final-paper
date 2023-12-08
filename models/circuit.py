@@ -2,9 +2,11 @@
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 
+import random
+
 
 def create_data_model():
-    """Stores the data for the problem."""
+    """Stores the data for the problem. This circuit is taken from Google OR-Tools TSP example. See https://developers.google.com/optimization/routing/tsp for more details."""
     data = {}
     data["distance_matrix"] = [
         [0, 2451, 713, 1018, 1631, 1374, 2408, 213, 2571, 875, 1420, 2145, 1972],
@@ -23,6 +25,20 @@ def create_data_model():
     ]
     data["num_vehicles"] = 1
     data["depot"] = 0
+
+    # tau is the distance matrix
+    tau = data["distance_matrix"]
+
+    # tau_prime+/- [0, 10] randomly for each tau[i][j] to construct matrix tau_prime, but use the same seed every time. All values in tau_prime are positive.
+    random.seed(0)
+    tau_prime = tau.copy()
+    for i in range(len(tau)):
+        for j in range(len(tau[i])):
+            tau_prime[i][j] = abs(
+                tau[i][j] - random.randint(0, 10)) if tau[i][j] != 0 else 0
+
+    data["tau_prime"] = tau_prime
+
     return data
 
 

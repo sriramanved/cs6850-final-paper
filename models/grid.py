@@ -1,6 +1,7 @@
 """Simple Travelling Salesperson Problem (TSP) between cities."""
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
+import math
 
 
 def create_distance_matrix(grid_size):
@@ -16,22 +17,40 @@ def create_distance_matrix(grid_size):
                     point2 = x * grid_size + y
                     distance = abs(x - i) + abs(y - j)
                     distance_matrix[point1][point2] = distance
-
+                
     return distance_matrix
 
+def create_euclidean_distance_matrix(grid_size):
+    n = grid_size * grid_size
+    euclidean_distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
+
+    for i in range(grid_size):
+        for j in range(grid_size):
+            point1 = i * grid_size + j
+
+            for x in range(grid_size):
+                for y in range(grid_size):
+                    point2 = x * grid_size + y
+                    distance = math.sqrt((x - i)**2 + (y - j)**2)
+                    euclidean_distance_matrix[point1][point2] = distance
+                
+    return euclidean_distance_matrix
 
 def create_data_model():
     """Stores the data for the problem."""
     data = {}
 
-    # Create distance matrix
-    data["distance_matrix"] = create_distance_matrix(25)
+    n = 3  # grid size parameter. n x n grid --> n^2 x n^2 distance matrices
+
+    # Create distance matrices
+    data["distance_matrix"] = create_distance_matrix(n) 
+    data["tau_prime"] = create_euclidean_distance_matrix(n) 
 
     data["num_vehicles"] = 1
     data["depot"] = 0
-    # for i in range(len(data["distance_matrix"])):
-    #     print(data["distance_matrix"][i])
+
     return data
+
 
 
 def print_solution(manager, routing, solution):
@@ -101,7 +120,6 @@ def main():
     route, t = solveTSP()
     # print(route)
     # print(t)
-
 
 if __name__ == "__main__":
     main()

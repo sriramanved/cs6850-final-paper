@@ -1,6 +1,7 @@
 """Simple Travelling Salesperson Problem (TSP) between cities."""
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
+import math
 
 
 def create_hub_spoke_distance_matrix(levels, c1, c2, r):
@@ -33,6 +34,34 @@ def create_hub_spoke_distance_matrix(levels, c1, c2, r):
 
     return distance_matrix
 
+def create_euclidean_hub_spoke_distance_matrix(levels, c1, c2, r):
+    # Calculate the number of nodes: 1 hub + 8 spokes per level
+    num_nodes = 1 + levels * 8
+    # Initialize the Euclidean distance matrix with zeros
+    euclidean_distance_matrix = [[0 for _ in range(num_nodes)] for _ in range(num_nodes)]
+
+    # Calculate the positions of each node in Cartesian coordinates
+    positions = [(0, 0)]  # Starting with the hub at the origin
+    for level in range(1, levels + 1):
+        radius = c1 * level
+        for i in range(8):
+            angle = math.pi / 4 * i
+            x = radius * math.cos(angle)
+            y = radius * math.sin(angle)
+            positions.append((x, y))
+
+    # Calculate Euclidean distances
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                xi, yi = positions[i]
+                xj, yj = positions[j]
+                euclidean_distance_matrix[i][j] = math.hypot(xj - xi, yj - yi)
+            else:
+                euclidean_distance_matrix[i][j] = 0
+
+    return euclidean_distance_matrix
+
 
 def create_data_model():
     """Stores the data for the problem."""
@@ -43,13 +72,15 @@ def create_data_model():
     c2 = 1  # Initial circumference distance
     r = 0.5  # Rate of increase per level
 
-    # Create distance matrix
+    # Create Manhattan distance matrix
     data["distance_matrix"] = create_hub_spoke_distance_matrix(levels, c1, c2, r)
+
+    # Create Euclidean distance matrix
+    data["euclidean_distance_matrix"] = create_euclidean_hub_spoke_distance_matrix(levels, c1, c2, r)
 
     data["num_vehicles"] = 1
     data["depot"] = 0
-    # for i in range(len(data["distance_matrix"])):
-    #     print(data["distance_matrix"][i])
+
     return data
 
 
