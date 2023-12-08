@@ -93,7 +93,6 @@ def main():
     route, t = solveTSP()
     print(route)
     print(t)
-    
 
 
 if __name__ == "__main__":
