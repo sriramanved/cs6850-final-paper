@@ -41,13 +41,13 @@ iStar, jStar, kStar = -1, -1, -1
 # tau is the distance matrix
 tau = (circuit.create_data_model())["distance_matrix"]
 
-# tau_prime+/- [0, 10] randomly for each tau[i][j] to construct matrix tau_prime
+# tau_prime+/- [0, 10] randomly for each tau[i][j] to construct matrix tau_prime, but use the same seed every time.
+random.seed(0)
 tau_prime = tau.copy()
 for i in range(len(tau)):
     for j in range(len(tau[i])):
         tau_prime[i][j] = tau[i][j] + \
             random.randint(0, 10) * random.choice([-1, 1])
-
 
 # initialize the sorties dictionary: sorties[d][j] = (i, k) if drone d serves customer node j between index i and index k
 sorties = dict([i, {}] for i in range(num_drones))
@@ -55,13 +55,13 @@ print("Sorties", sorties)
 
 # availableUAVs[i] = [d1, d2, ...] if node i is available to drones d1, d2, ...
 availableUAVs = {}
-for i in cPrime:
+for i in range(len(truckRoute)):
     availableUAVs[i] = list(range(num_drones))
 print("Available UAVs", availableUAVs)
 
 # unavailableUAVs[i] = [d1, d2, ...] if node i is unavailable to drones d1, d2, ...
 unavailableUAVs = {}
-for i in cPrime:
+for i in range(len(truckRoute)):
     unavailableUAVs[i] = []
 print("Unavailable UAVs", unavailableUAVs)
 
@@ -124,7 +124,8 @@ def calcCostTruck(j, t):
         if cost < savings:
             feasible = True
             for d in set(unavailableUAVs[i] + unavailableUAVs[k]):
-                feasible = feasible and energy[d] - cost > 0 and savings - cost <= maxSavings
+                feasible = feasible and energy[d] - \
+                    cost > 0 and savings - cost <= maxSavings
             if feasible:
                 servedByUAV[j] = -1
                 iStar = i
@@ -147,15 +148,18 @@ def calcCostUAV(j, t):
         print("d: ", d)
         jdict = sorties[d]
         # l and rv are indicies in truck route
+        print("jdict", jdict)
         for (l, rv) in jdict.values():
             a = rv if rv < jIdx and rv > a else a
             b = l if l > jIdx and l < b else b
-        for iIdx in range(a, b):
+        print("a: ", a)
+        print("b: ", b)
+        for iIdx in range(max(a, 0), min(b, len(truckRoute))):
             i = truckRoute[iIdx]
-            for kIdx in range(i + 1, b + 1):
+            for kIdx in range(i + 1, min(b + 1, len(truckRoute))):
                 k = truckRoute[kIdx]
                 if tau_prime[i][j] + tau_prime[j][k] <= energy[d]:
-                    cost = tau[i][j] + tau[j][k] - tau[i][k] 
+                    cost = tau[i][j] + tau[j][k] - tau[i][k]
                     if savings - cost > maxSavings:
                         servedByUAV[j] = d
                         iStar = i
@@ -169,48 +173,68 @@ def performUpdate():
     Performs the update of the truck route and the UAV sorties.
     """
     global iStar, jStar, kStar, maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
+
+    print("vals of i*, j*, k*", iStar, jStar, kStar)
+
     if servedByUAV[jStar] != -1:
-        iIdx = truckRoute.index(iStar)
-        kIdx = truckRoute.index(jStar)
-        jIdx = truckRoute.index(jStar)
+        iIdx = truckRouteMap[iStar]
+        jIdx = truckRouteMap[jStar]
+        kIdx = truckRouteMap[kStar]
+        # what truck services before and after jIdx
         iPrime = truckRoute[jIdx - 1]
         kPrime = truckRoute[jIdx + 1]
         truckSavings = tau[iPrime][jStar] + \
             tau[jStar][kPrime] - tau[iPrime][kPrime]
 
-        energy[servedByUAV[jStar]] -= t[kIdx] - t[iIdx]
+        curr_d = servedByUAV[jStar]
 
-        # update unavailableUAVS and availableUAVS
+        energy[curr_d] -= (t[kIdx] - t[iIdx])
+
+        # update unavailableUAVs and availableUAVs
         for x in range(iIdx + 1, kIdx):
-            availableUAVs[truckRoute[x]].remove(d)
-            unavailableUAVs[truckRoute[x]].add(d)
+            availableUAVs[truckRoute[x]].remove(curr_d)
+            unavailableUAVs[truckRoute[x]].append(curr_d)
 
         for d in unavailableUAVs[jStar]:
             energy[d] += truckSavings
 
-        cPrime.remove(iStar)
+        if iStar in cPrime:
+            cPrime.remove(iStar)
         cPrime.remove(jStar)
-        cPrime.remove(kStar)
-        truckRoute.remove(jStar)
+        if kStar in cPrime:
+            cPrime.remove(kStar)
 
         # update t
         for x in range(jIdx + 1, len(truckRoute)):
             t[x] -= truckSavings
 
         # update truckRoute
-        truckRoute.remove(jStar)
+        print("truckRoute before: ", truckRoute)
+        print("jStar: ", jStar)
 
         # update truckRoute map
-
+        truckRouteMap[jStar] = -1
+        for x in range(jIdx, len(truckRoute)):
+            truckRouteMap[truckRoute[x]] -= 1
 
         # update sorties
-        sorties[d][jStar] = (iStar, kStar)
+        sorties[curr_d][jStar] = (iStar, kStar)
     else:
         # update truckRoute
+        iIdx = truckRoute[iStar]
+        jIdx = truckRoute[jStar]
+        kIdx = truckRoute[kStar]
+
         truckRoute.remove(jStar)
-        truckRoute.insert(jStar, truckRoute.index(iStar) + 1)
+        truckRoute.insert(jStar, iIdx + 1)
 
         # update truckRoute map
+        for x in range(jIdx + 1, len(truckRoute)):
+            truckRouteMap[truckRoute[x]] -= 1
+
+        truckRouteMap[jStar] = iIdx + 1
+        for x in range(kIdx, len(truckRoute)):
+            truckRouteMap[truckRoute[x]] += 1
 
         # update unavailable, available uavs
         unavailableUAVs[jStar] = list(
