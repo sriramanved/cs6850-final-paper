@@ -8,13 +8,13 @@ sL = 0
 sR = 0
 
 # UAV eligible customers
-cPrime = [2]
+cPrime = [2, 3, 6]
 
 # drones available
 num_drones = 3
 
 # battery budget for all drones
-B = 100000000
+B = 100
 
 # energy budget for each drone
 energy = [B for _ in range(num_drones)]
@@ -51,13 +51,11 @@ for i in range(len(tau)):
 
 # initialize the sorties dictionary: sorties[d][j] = (i, k) if drone d serves customer node j between index i and index k
 sorties = dict([i, {}] for i in range(num_drones))
-print("Sorties", sorties)
 
 # availableUAVs[i] = [d1, d2, ...] if node i is available to drones d1, d2, ...
 availableUAVs = {}
 for i in range(len(truckRoute)):
     availableUAVs[i] = list(range(num_drones))
-print("Available UAVs", availableUAVs)
 
 # unavailableUAVs[i] = [d1, d2, ...] if node i is unavailable to drones d1, d2, ...
 unavailableUAVs = {}
@@ -74,6 +72,7 @@ def solveFSTSP(cPrime, max_iter=1000):
 
     iter = 0
     while iter < max_iter:
+        print("ITERATION:", iter)
         for j in cPrime:
             calcSavings(j, t)
             # no available UAV or j is beginning/ end of sortie
@@ -152,15 +151,13 @@ def calcCostUAV(j, t):
         for (l, rv) in jdict.values():
             a = rv if rv < jIdx and rv > a else a
             b = l if l > jIdx and l < b else b
-        print("a: ", a)
-        print("b: ", b)
         for iIdx in range(max(a, 0), min(b, len(truckRoute))):
             i = truckRoute[iIdx]
-            for kIdx in range(i + 1, min(b + 1, len(truckRoute))):
+            for kIdx in range(iIdx + 1, min(b + 1, len(truckRoute))):
                 k = truckRoute[kIdx]
                 if tau_prime[i][j] + tau_prime[j][k] <= energy[d]:
                     cost = tau[i][j] + tau[j][k] - tau[i][k]
-                    if savings - cost > maxSavings:
+                    if savings - cost > maxSavings and i != j and j != k:
                         servedByUAV[j] = d
                         iStar = i
                         jStar = j
@@ -175,6 +172,7 @@ def performUpdate():
     global iStar, jStar, kStar, maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
 
     print("vals of i*, j*, k*", iStar, jStar, kStar)
+    print("truckRoute before: ", truckRoute)
 
     if servedByUAV[jStar] != -1:
         iIdx = truckRouteMap[iStar]
@@ -209,7 +207,7 @@ def performUpdate():
             t[x] -= truckSavings
 
         # update truckRoute
-        print("truckRoute before: ", truckRoute)
+        truckRoute.remove(jStar)
         print("jStar: ", jStar)
 
         # update truckRoute map
@@ -247,6 +245,8 @@ def performUpdate():
 
         for x in range(jIdx + 1, len(truckRoute)):
             t[x] += truckSavings
+    print("truckRoute after: ", truckRoute)
+    print("sorties after: ", sorties)
 
 
 def main():
