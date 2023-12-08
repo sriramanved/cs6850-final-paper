@@ -33,7 +33,7 @@ for i in range(len(truckRoute)):
 savings = 0
 maxSavings = 0
 
-# servedByUAV[i] = d if node i is served by drone d, -1 if served by truck
+# servedByUAV[i] = d if customer node i is served by drone d, -1 if served by truck
 servedByUAV = [-1 for _ in range(len(truckRoute))]
 iStar, jStar, kStar = -1, -1, -1
 
@@ -49,7 +49,7 @@ for i in range(len(tau)):
             random.randint(0, 10) * random.choice([-1, 1])
 
 
-# initialize the sorties dictionary: sorties[d][j] = (i, k) if drone d serves node j between index i and index k
+# initialize the sorties dictionary: sorties[d][j] = (i, k) if drone d serves customer node j between index i and index k
 sorties = dict([i, {}] for i in range(num_drones))
 print("Sorties", sorties)
 
@@ -70,7 +70,8 @@ def solveFSTSP(cPrime, max_iter=1000):
     """
     Main Heuristic method. 
     """
-    global maxSavings
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+
     iter = 0
     while iter < max_iter:
         for j in cPrime:
@@ -94,6 +95,8 @@ def calcSavings(j, t):
     """
     Minimizes the difference between the drone and the truck arrivals at a single location. The simplifcation of our actual pseudocode is that we assume that the drone never has to wait for the truck to arrive at a location.
     """
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+
     jIdx = truckRouteMap[j]
     iIdx = jIdx - 1
     kIdx = jIdx + 1
@@ -111,7 +114,8 @@ def calcCostTruck(j, t):
     @param j: node to be inserted
     @param t: time of arrival at each node in the truck route
     """
-    global maxSavings, iStar, jStar, kStar
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+
     for iIdx in range(len(truckRoute) - 1):
         kIdx = iIdx + 1
         i = truckRoute[iIdx]
@@ -120,16 +124,7 @@ def calcCostTruck(j, t):
         if cost < savings:
             feasible = True
             for d in set(unavailableUAVs[i] + unavailableUAVs[k]):
-                a = -1
-                b = len(truckRoute) + 2
-                jdict = sorties[d]
-                for (l, rv) in jdict.values:
-                    # l and rv based on location in truck route
-                    if l < iIdx and rv > kIdx:
-                        a = l
-                        b = rv
-                        feasible = feasible and t[b] - t[a] + \
-                            cost > energy[d] or savings - cost <= maxSavings
+                feasible = feasible and energy[d] - cost > 0 and savings - cost <= maxSavings
             if feasible:
                 servedByUAV[j] = -1
                 iStar = i
@@ -142,9 +137,10 @@ def calcCostUAV(j, t):
     """
     Computes the time saved by assigning an available UAV to a node j that initially recieved tis delivery by truck.
     """
-    global maxSavings, iStar, jStar, kStar
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+
     D = availableUAVs[j]
-    jIdx = truckRoute.index(j)
+    jIdx = truckRouteMap[j]
     for d in D:
         a = -1
         b = len(truckRoute) + 2
@@ -154,8 +150,10 @@ def calcCostUAV(j, t):
         for (l, rv) in jdict.values():
             a = rv if rv < jIdx and rv > a else a
             b = l if l > jIdx and l < b else b
-        for i in range(a, b):
-            for k in range(i + 1, b + 1):
+        for iIdx in range(a, b):
+            i = truckRoute[iIdx]
+            for kIdx in range(i + 1, b + 1):
+                k = truckRoute[kIdx]
                 if tau_prime[i][j] + tau_prime[j][k] <= energy[d]:
                     cost = tau[i][j] + tau[j][k] - tau[i][k] 
                     if savings - cost > maxSavings:
@@ -170,7 +168,7 @@ def performUpdate():
     """
     Performs the update of the truck route and the UAV sorties.
     """
-    global iStar, jStar, kStar
+    global iStar, jStar, kStar, maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
     if servedByUAV[jStar] != -1:
         iIdx = truckRoute.index(iStar)
         kIdx = truckRoute.index(jStar)
@@ -202,11 +200,17 @@ def performUpdate():
         # update truckRoute
         truckRoute.remove(jStar)
 
+        # update truckRoute map
+
+
         # update sorties
         sorties[d][jStar] = (iStar, kStar)
     else:
+        # update truckRoute
         truckRoute.remove(jStar)
         truckRoute.insert(jStar, truckRoute.index(iStar) + 1)
+
+        # update truckRoute map
 
         # update unavailable, available uavs
         unavailableUAVs[jStar] = list(
