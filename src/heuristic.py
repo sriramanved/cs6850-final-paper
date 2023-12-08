@@ -1,5 +1,12 @@
+import sys
+sys.path.append('../models')
+
 import circuit
+import grid
 import random
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 #################################### parameters ################################
 
@@ -8,13 +15,17 @@ sL = 0
 sR = 0
 
 # UAV eligible customers
+
+# generate random eligible customers from range 1 - 2500
+# cPrime = random.sample(range(1, 625), 200)
 cPrime = [2, 3, 6]
 
 # drones available
+# num_drones = 20
 num_drones = 3
 
 # battery budget for all drones
-B = 100
+B = 10000
 
 # energy budget for each drone
 energy = [B for _ in range(num_drones)]
@@ -23,11 +34,6 @@ energy = [B for _ in range(num_drones)]
 
 # solve TSP
 truckRoute, t = circuit.solveTSP()
-
-# map every customer in the truck route to its index in the truck route
-truckRouteMap = {}
-for i in range(len(truckRoute)):
-    truckRouteMap[truckRoute[i]] = i
 
 # initialize savings & maxSavings
 savings = 0
@@ -41,15 +47,14 @@ iStar, jStar, kStar = -1, -1, -1
 # tau is the distance matrix
 tau = (circuit.create_data_model())["distance_matrix"]
 
-# tau_prime+/- [0, 10] randomly for each tau[i][j] to construct matrix tau_prime, but use the same seed every time.
+# tau_prime+/- [0, 10] randomly for each tau[i][j] to construct matrix tau_prime, but use the same seed every time. All values in tau_prime are positive.
 random.seed(0)
 tau_prime = tau.copy()
 for i in range(len(tau)):
     for j in range(len(tau[i])):
-        tau_prime[i][j] = tau[i][j] + \
-            random.randint(0, 10) * random.choice([-1, 1])
+        tau_prime[i][j] = abs(tau[i][j] - random.randint(0, 10)) if tau[i][j] != 0 else 0
 
-# initialize the sorties dictionary: sorties[d][j] = (i, k) if drone d serves customer node j between index i and index k
+# initialize the sorties dictionary: sorties[d][j] = (i, k) if drone d serves customer node j between node i and node k
 sorties = dict([i, {}] for i in range(num_drones))
 
 # availableUAVs[i] = [d1, d2, ...] if node i is available to drones d1, d2, ...
@@ -61,18 +66,18 @@ for i in range(len(truckRoute)):
 unavailableUAVs = {}
 for i in range(len(truckRoute)):
     unavailableUAVs[i] = []
-print("Unavailable UAVs", unavailableUAVs)
 
 
-def solveFSTSP(cPrime, max_iter=1000):
+def solveFSTSP(cPrime, max_iter=500):
     """
     Main Heuristic method. 
     """
-    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
 
     iter = 0
     while iter < max_iter:
-        print("ITERATION:", iter)
+        print("WORKING AT ITERATION:", iter)
+        # print("available at this time ", 0 in availableUAVs[141])
         for j in cPrime:
             calcSavings(j, t)
             # no available UAV or j is beginning/ end of sortie
@@ -81,6 +86,7 @@ def solveFSTSP(cPrime, max_iter=1000):
             else:
                 calcCostUAV(j, t)
 
+        # print("available at this time ", 0 in availableUAVs[141])
         if maxSavings > 0:
             performUpdate()
             maxSavings = 0
@@ -94,10 +100,10 @@ def calcSavings(j, t):
     """
     Minimizes the difference between the drone and the truck arrivals at a single location. The simplifcation of our actual pseudocode is that we assume that the drone never has to wait for the truck to arrive at a location.
     """
-    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
 
-    jIdx = truckRouteMap[j]
-    iIdx = jIdx - 1
+    jIdx = truckRoute.index(j)
+    iIdx = jIdx - 1 # we need to test whether iIdx out of bounds.
     kIdx = jIdx + 1
     i = truckRoute[iIdx]
     k = truckRoute[kIdx]
@@ -113,7 +119,7 @@ def calcCostTruck(j, t):
     @param j: node to be inserted
     @param t: time of arrival at each node in the truck route
     """
-    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
 
     for iIdx in range(len(truckRoute) - 1):
         kIdx = iIdx + 1
@@ -136,28 +142,37 @@ def calcCostTruck(j, t):
 def calcCostUAV(j, t):
     """
     Computes the time saved by assigning an available UAV to a node j that initially recieved tis delivery by truck.
+    @param j: node to be inserted
+    @param t: time of arrival at each node in the truck route
     """
-    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, truckRouteMap
+    global maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
 
     D = availableUAVs[j]
-    jIdx = truckRouteMap[j]
+    jIdx = truckRoute.index(j)
     for d in D:
         a = -1
         b = len(truckRoute) + 2
-        print("d: ", d)
         jdict = sorties[d]
-        # l and rv are indicies in truck route
-        print("jdict", jdict)
         for (l, rv) in jdict.values():
-            a = rv if rv < jIdx and rv > a else a
-            b = l if l > jIdx and l < b else b
-        for iIdx in range(max(a, 0), min(b, len(truckRoute))):
+            lIdx = truckRoute.index(l)
+            rvIdx = truckRoute.index(rv)
+            a = rvIdx if rvIdx < jIdx and rvIdx > a else a
+            b = lIdx if lIdx > jIdx and lIdx < b else b
+        start = max(a, 0)
+        end = min(b, len(truckRoute) - 1)
+        # if d == 0:
+            # print("start, end", start, end)
+            # print("at start and at end", truckRoute[start], truckRoute[end])
+            # print("jIdx: ", jIdx, j)
+        for iIdx in range(start, end + 1): # removed end + 1 because i != k for insertions
             i = truckRoute[iIdx]
-            for kIdx in range(iIdx + 1, min(b + 1, len(truckRoute))):
+            for kIdx in range(iIdx + 1, end + 1):
                 k = truckRoute[kIdx]
                 if tau_prime[i][j] + tau_prime[j][k] <= energy[d]:
                     cost = tau[i][j] + tau[j][k] - tau[i][k]
                     if savings - cost > maxSavings and i != j and j != k:
+                        # if d == 0:
+                        #     print("setting j*")
                         servedByUAV[j] = d
                         iStar = i
                         jStar = j
@@ -171,13 +186,16 @@ def performUpdate():
     """
     global iStar, jStar, kStar, maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
 
-    print("vals of i*, j*, k*", iStar, jStar, kStar)
-    print("truckRoute before: ", truckRoute)
+    # print("truck route: ", truckRoute)
+
+    # print("\nsorties: ", sorties)
+
+    # print("available at this time 1", 0 in availableUAVs[141])
 
     if servedByUAV[jStar] != -1:
-        iIdx = truckRouteMap[iStar]
-        jIdx = truckRouteMap[jStar]
-        kIdx = truckRouteMap[kStar]
+        iIdx = truckRoute.index(iStar)
+        jIdx = truckRoute.index(jStar)
+        kIdx = truckRoute.index(kStar)
         # what truck services before and after jIdx
         iPrime = truckRoute[jIdx - 1]
         kPrime = truckRoute[jIdx + 1]
@@ -188,8 +206,14 @@ def performUpdate():
 
         energy[curr_d] -= (t[kIdx] - t[iIdx])
 
+        # print("available at this time 2", 0 in availableUAVs[141])
         # update unavailableUAVs and availableUAVs
+        # print("jStar: ", jStar)
+        # print("iIdx: ", iIdx)
+        # print("kIdx: ", kIdx)
+        # print("curr drone: ", curr_d)
         for x in range(iIdx + 1, kIdx):
+            # print("available here:", availableUAVs[truckRoute[x]])
             availableUAVs[truckRoute[x]].remove(curr_d)
             unavailableUAVs[truckRoute[x]].append(curr_d)
 
@@ -208,31 +232,20 @@ def performUpdate():
 
         # update truckRoute
         truckRoute.remove(jStar)
-        print("jStar: ", jStar)
-
-        # update truckRoute map
-        truckRouteMap[jStar] = -1
-        for x in range(jIdx, len(truckRoute)):
-            truckRouteMap[truckRoute[x]] -= 1
 
         # update sorties
         sorties[curr_d][jStar] = (iStar, kStar)
     else:
+        truckSavings = tau[iStar][jStar] + \
+            tau[jStar][kStar] - tau[iStar][kStar]
+
         # update truckRoute
-        iIdx = truckRoute[iStar]
-        jIdx = truckRoute[jStar]
-        kIdx = truckRoute[kStar]
+        iIdx = truckRoute.index(iStar)
+        jIdx = truckRoute.index(jStar)
+        kIdx = truckRoute.index(kStar)
 
         truckRoute.remove(jStar)
-        truckRoute.insert(jStar, iIdx + 1)
-
-        # update truckRoute map
-        for x in range(jIdx + 1, len(truckRoute)):
-            truckRouteMap[truckRoute[x]] -= 1
-
-        truckRouteMap[jStar] = iIdx + 1
-        for x in range(kIdx, len(truckRoute)):
-            truckRouteMap[truckRoute[x]] += 1
+        truckRoute.insert(iIdx + 1, jStar)
 
         # update unavailable, available uavs
         unavailableUAVs[jStar] = list(
@@ -240,13 +253,13 @@ def performUpdate():
         availableUAVs[jStar] = list(
             set(availableUAVs[iStar]).intersection(set(availableUAVs[kStar])))
 
+        # update drone energies
         for d in unavailableUAVs[jStar]:
             energy[d] -= tau[iStar][jStar] + tau[jStar][kStar]
 
+        # displace all arrival times after the insertion of jStar into truckRoute
         for x in range(jIdx + 1, len(truckRoute)):
             t[x] += truckSavings
-    print("truckRoute after: ", truckRoute)
-    print("sorties after: ", sorties)
 
 
 def main():
@@ -257,6 +270,13 @@ def main():
 
     print("Truck Route: ", truckRoute)
     print("Sorties: ", sorties)
+
+    # print("Grid model chosen for this run: ", "grid")
+    # print("cPrime generated randomly: 200 customers [1, 625]]")
+    print("Number of drones: ", num_drones)
+    print("Battery budget: ", B)
+
+
 
 
 if __name__ == "__main__":
