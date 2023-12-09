@@ -1,30 +1,30 @@
-import circuit
-import grid
-import random
-import matplotlib.pyplot as plt
-import numpy as np
 import sys
 sys.path.append('../models')
 
+import cities
+import matplotlib.pyplot as plt
+import math
+import random
+import circuit
+import seaborn as sns
+import numpy as np
+import grid
+import rural
 
+
+import hub_and_spoke
 #################################### parameters ################################
 
 # recovery times for UAVs launch and rendezvous
 sL = 0
 sR = 0
 
-# UAV eligible customers
-
-# generate random eligible customers from range 1 - 2500
-# cPrime = random.sample(range(1, 625), 200)
-cPrime = [2, 3, 6]
-
 # drones available
 # num_drones = 20
-num_drones = 3
+num_drones = 5
 
 # battery budget for all drones
-B = 10000
+B = float("inf")
 
 # energy budget for each drone
 energy = [B for _ in range(num_drones)]
@@ -32,10 +32,10 @@ energy = [B for _ in range(num_drones)]
 ################################### initialization #############################
 
 # solve TSP using OR-Tools
-truckRoute, t = circuit.solveTSP()
+truckRoute, t = grid.solveTSP()
 
 # tau is the distance matrix for truck and tau_prime is for drone
-data = circuit.create_data_model()
+data = grid.create_data_model()
 
 # tau is the distance matrix
 tau = data["distance_matrix"]
@@ -46,6 +46,10 @@ tau_prime = data["tau_prime"]
 # initialize savings & maxSavings
 savings = 0
 maxSavings = 0
+
+# generate random eligible customers from range 1 - 2500
+# cPrime = random.sample(range(1, len(truckRoute)), 50)
+cPrime = [2, 3, 6, 7]
 
 # servedByUAV[i] = d if customer node i is served by drone d, -1 if served by truck
 servedByUAV = [-1 for _ in range(len(truckRoute))]
@@ -77,6 +81,7 @@ def solveFSTSP(cPrime, max_iter=500):
 
         for j in cPrime:
             calcSavings(j, t)
+            # print("savings: ", savings)
             # no available UAV or j is beginning/ end of sortie
             if len(availableUAVs[j]) == 0:
                 calcCostTruck(j, t)
@@ -87,6 +92,7 @@ def solveFSTSP(cPrime, max_iter=500):
             performUpdate()
             maxSavings = 0
         else:
+            # print("breaking")
             break
         iter += 1
     return
@@ -103,8 +109,11 @@ def calcSavings(j, t):
     kIdx = jIdx + 1
     i = truckRoute[iIdx]
     k = truckRoute[kIdx]
+    # print("i, j, k: ", i, j, k)
+    # print("tau[i][j]", tau[i][j])
+    # print("tau[j][k]", tau[j][k])
+    # print("tau[i][k]", tau[i][k])
     savings = tau[i][j] + tau[j][k] - tau[i][k]
-
     # calculate a, b, j' and update savings.
     return savings
 
@@ -122,6 +131,7 @@ def calcCostTruck(j, t):
         i = truckRoute[iIdx]
         k = truckRoute[kIdx]
         cost = tau[i][j] + tau[j][k] - tau[i][k]
+        # print("truck cost:", cost)
         if cost < savings:
             feasible = True
             for d in set(unavailableUAVs[i] + unavailableUAVs[k]):
@@ -162,11 +172,13 @@ def calcCostUAV(j, t):
                 k = truckRoute[kIdx]
                 if tau_prime[i][j] + tau_prime[j][k] <= energy[d]:
                     cost = tau[i][j] + tau[j][k] - tau[i][k] + sL + sR
+                    # print("uav cost: ", cost, i, j, k, savings)
                     if savings - cost > maxSavings and i != j and j != k:
                         servedByUAV[j] = d
                         iStar = i
                         jStar = j
                         kStar = k
+                        # print("IN IF uav cost: ", cost)
                         maxSavings = savings - cost
 
 
@@ -224,11 +236,12 @@ def performUpdate():
             tau[jStar][kStar] - tau[iStar][kStar]
 
         # update truckRoute
+        truckRoute.remove(jStar)
+
         iIdx = truckRoute.index(iStar)
         jIdx = truckRoute.index(jStar)
         kIdx = truckRoute.index(kStar)
 
-        truckRoute.remove(jStar)
         truckRoute.insert(iIdx + 1, jStar)
 
         # update unavailable, available uavs
@@ -251,6 +264,7 @@ def main():
     Main method for heuristic.
     """
     print("Time with just truck: ", t[-1] / 50)
+    print("Truck route before: ", truckRoute)
     solveFSTSP(cPrime)
 
     print("Truck Route: ", truckRoute)

@@ -2,6 +2,7 @@
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 import pandas as pd
+import math
 
 
 def txt_to_distance_matrix(txt):
@@ -14,7 +15,8 @@ def txt_to_distance_matrix(txt):
         lines = f.readlines()
     distance_matrix = []
     for line in lines:
-        distance_matrix.append([(int(float(i))) for i in line.split(",")])
+        distance_matrix.append([int(math.ceil(float(i)*10))
+                               for i in line.split(",")])
     return distance_matrix
 
 

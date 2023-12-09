@@ -17,8 +17,9 @@ def create_distance_matrix(grid_size):
                     point2 = x * grid_size + y
                     distance = abs(x - i) + abs(y - j)
                     distance_matrix[point1][point2] = distance
-                
+
     return distance_matrix
+
 
 def create_euclidean_distance_matrix(grid_size):
     n = grid_size * grid_size
@@ -33,24 +34,24 @@ def create_euclidean_distance_matrix(grid_size):
                     point2 = x * grid_size + y
                     distance = math.sqrt((x - i)**2 + (y - j)**2)
                     euclidean_distance_matrix[point1][point2] = distance
-                
+
     return euclidean_distance_matrix
+
 
 def create_data_model():
     """Stores the data for the problem."""
     data = {}
 
-    n = 3  # grid size parameter. n x n grid --> n^2 x n^2 distance matrices
+    n = 4  # grid size parameter. n x n grid --> n^2 x n^2 distance matrices
 
     # Create distance matrices
-    data["distance_matrix"] = create_distance_matrix(n) 
-    data["tau_prime"] = create_euclidean_distance_matrix(n) 
+    data["distance_matrix"] = create_distance_matrix(n)
+    data["tau_prime"] = create_euclidean_distance_matrix(n)
 
     data["num_vehicles"] = 1
     data["depot"] = 0
 
     return data
-
 
 
 def print_solution(manager, routing, solution):
@@ -120,6 +121,7 @@ def main():
     route, t = solveTSP()
     # print(route)
     # print(t)
+
 
 if __name__ == "__main__":
     main()

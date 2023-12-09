@@ -2,8 +2,15 @@ import heuristic
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import gen
 
 
-# num drones vs total delivery time
 
-# time saved with some number of drones for grids of diff sizes
+
+
+# num drones vs total delivery time on 3 diff grid sizes
+
+
+# time saved for fixed number of drones for diff grid sizes
+
+# 
