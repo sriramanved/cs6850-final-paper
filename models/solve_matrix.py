@@ -1,55 +1,30 @@
 """Simple Travelling Salesperson Problem (TSP) between cities."""
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
-import math
+import random
+import copy
+import numpy as np
 
 
-def create_distance_matrix(grid_size):
-    n = grid_size * grid_size
-    distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
-
-    for i in range(grid_size):
-        for j in range(grid_size):
-            point1 = i * grid_size + j
-
-            for x in range(grid_size):
-                for y in range(grid_size):
-                    point2 = x * grid_size + y
-                    distance = abs(x - i) + abs(y - j)
-                    distance_matrix[point1][point2] = distance
-
-    return distance_matrix
-
-
-def create_euclidean_distance_matrix(grid_size):
-    n = grid_size * grid_size
-    euclidean_distance_matrix = [[0 for _ in range(n)] for _ in range(n)]
-
-    for i in range(grid_size):
-        for j in range(grid_size):
-            point1 = i * grid_size + j
-
-            for x in range(grid_size):
-                for y in range(grid_size):
-                    point2 = x * grid_size + y
-                    distance = math.sqrt((x - i)**2 + (y - j)**2)
-                    euclidean_distance_matrix[point1][point2] = distance
-
-    return euclidean_distance_matrix
-
-
-def create_data_model():
-    """Stores the data for the problem."""
+def create_data_model(distance_matrix):
+    """Stores the data for the problem. This circuit is taken from Google OR-Tools TSP example. See https://developers.google.com/optimization/routing/tsp for more details."""
     data = {}
-
-    n = 3  # grid size parameter. n x n grid --> n^2 x n^2 distance matrices
-
-    # Create distance matrices
-    data["distance_matrix"] = create_distance_matrix(n)
-    data["tau_prime"] = create_euclidean_distance_matrix(n)
-
+    data["distance_matrix"] = distance_matrix
     data["num_vehicles"] = 1
     data["depot"] = 0
+
+    # tau is the distance matrix
+    tau = data["distance_matrix"]
+
+    # tau_prime is the distance matrix for drones
+    random.seed(6850)
+    tau_prime = copy.deepcopy(tau)
+
+    for i in range(len(tau)):
+        for j in range(len(tau[i])):
+            tau_prime[i][j] = (tau[i][j] / 5)
+
+    data["tau_prime"] = tau_prime
 
     return data
 
@@ -58,7 +33,7 @@ def print_solution(manager, routing, solution):
     t = [0]
     route = [0]
     """Prints solution on console."""
-    # print(f"Objective: {solution.ObjectiveValue()} miles")
+    print(f"Objective: {solution.ObjectiveValue()} miles")
     index = routing.Start(0)
     plan_output = "Route for vehicle 0:\n"
     route_distance = 0
@@ -72,15 +47,15 @@ def print_solution(manager, routing, solution):
         t += [route_distance]
     plan_output += f" {manager.IndexToNode(index)}\n"
 
-    # print(plan_output)
+    print(plan_output)
     plan_output += f"Route distance: {route_distance}miles\n"
     return route, t
 
 
-def solveTSP():
+def solveTSP(distance_matrix):
     """Entry point of the program."""
     # Instantiate the data problem.
-    data = create_data_model()
+    data = create_data_model(distance_matrix)
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(
@@ -119,8 +94,6 @@ def solveTSP():
 
 def main():
     route, t = solveTSP()
-    # print(route)
-    # print(t)
 
 
 if __name__ == "__main__":
