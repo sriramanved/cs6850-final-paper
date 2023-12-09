@@ -257,8 +257,8 @@ def performUpdate():
         # displace all arrival times after the insertion of jStar into truckRoute
         for x in range(jIdx + 1, len(truckRoute)):
             t[x] += truckSavings
-
-
+    
+    
 def main():
     """
     Main method for heuristic.

@@ -60,27 +60,36 @@ def print_matrix(matrix):
     for row in matrix:
         print(row)
 
+def comupte_all():
+    tri_state_area_cities = ["New York City NY", "Philadelphia PA", "Stamford CT", "Ithaca NY", "Newark NJ", "Jersey City NJ", "New Brunswick NJ", "Hoboken NJ", "Princeton NJ", "Trenton NJ", "Yonkers NY"]
+    
+    
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Boston MA")
+    tri_state_area_cities.append("Providence RI")
+    tri_state_area_cities.append("Hartford CT")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Washington DC")
+    tri_state_area_cities.append("Chantilly VA")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Baltimore MD")
+    
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Richmond VA")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Virginia Beach VA")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Raleigh NC")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Pittsburgh PA")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Buffalo NY")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Rochester NY")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
+    tri_state_area_cities.append("Syracuse NY")
+    all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))  
 
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Boston MA")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Washington DC")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Baltimore MD")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Richmond VA")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Virginia Beach VA")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Raleigh NC")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Pittsburgh PA")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Buffalo NY")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Rochester NY")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))
-tri_state_area_cities.append("Syracuse NY")
-all_distance_matrices.append(make_distance_matrix(tri_state_area_cities))  
+    return all_distance_matrices
 
 
