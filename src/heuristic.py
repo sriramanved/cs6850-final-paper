@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append("../models")
+
 import cities
 import matplotlib.pyplot as plt
 import math
@@ -8,8 +12,6 @@ import numpy as np
 import grid
 import rural
 import hub_and_spoke
-import sys
-sys.path.append('../models')
 
 
 def solveMFSHC(num_drones, B, truckRoute, t, data, cPrime, sL, sR):
@@ -32,6 +34,10 @@ def solveMFSHC(num_drones, B, truckRoute, t, data, cPrime, sL, sR):
     savings = 0
     maxSavings = 0
 
+    truckRouteMap = {}
+    for i in range(len(truckRoute)):
+        truckRouteMap[truckRoute[i]] = i
+
     # servedByUAV[i] = d if customer node i is served by drone d, -1 if served by truck
     servedByUAV = [-1 for _ in range(len(truckRoute))]
     iStar, jStar, kStar = -1, -1, -1
@@ -52,7 +58,25 @@ def solveMFSHC(num_drones, B, truckRoute, t, data, cPrime, sL, sR):
     print("Time with just truck: ", t[-1] / 50)
     print("Truck route before: ", truckRoute)
     truckRoute, sorties, t = solveFSTSP(
-        cPrime, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, sL, sR)
+        cPrime,
+        maxSavings,
+        iStar,
+        jStar,
+        kStar,
+        savings,
+        tau,
+        tau_prime,
+        truckRoute,
+        t,
+        sorties,
+        availableUAVs,
+        unavailableUAVs,
+        energy,
+        servedByUAV,
+        sL,
+        sR,
+        truckRouteMap,
+    )
 
     print("Truck Route: ", truckRoute)
     print("Sorties: ", sorties)
@@ -64,30 +88,174 @@ def solveMFSHC(num_drones, B, truckRoute, t, data, cPrime, sL, sR):
     return truckRoute, sorties, t
 
 
-def solveFSTSP(cPrime, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, sL, sR, max_iter=500):
+def solveFSTSP(
+    cPrime,
+    maxSavings,
+    iStar,
+    jStar,
+    kStar,
+    savings,
+    tau,
+    tau_prime,
+    truckRoute,
+    t,
+    sorties,
+    availableUAVs,
+    unavailableUAVs,
+    energy,
+    servedByUAV,
+    sL,
+    sR,
+    truckRouteMap,
+    max_iter=500,
+):
     """
-    Main Heuristic method. 
+    Main Heuristic method.
     """
 
     iter = 0
     while iter < max_iter:
         print("WORKING AT ITERATION:", iter)
-
+        # print("beginning cPrime: ", cPrime)
         for j in cPrime:
-            t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV = calcSavings(
-                j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV)
-            print("j, savings: ", j, savings)
-            # no available UAV or j is beginning/ end of sortie
+            (
+                t,
+                maxSavings,
+                iStar,
+                jStar,
+                kStar,
+                savings,
+                tau,
+                tau_prime,
+                truckRoute,
+                sorties,
+                availableUAVs,
+                unavailableUAVs,
+                energy,
+                servedByUAV,
+                truckRouteMap,
+            ) = calcSavings(
+                j,
+                t,
+                maxSavings,
+                iStar,
+                jStar,
+                kStar,
+                savings,
+                tau,
+                tau_prime,
+                truckRoute,
+                sorties,
+                availableUAVs,
+                unavailableUAVs,
+                energy,
+                servedByUAV,
+                truckRouteMap,
+            )
             if len(availableUAVs[j]) == 0:
-                t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV = calcCostTruck(
-                    j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV)
+                (
+                    t,
+                    maxSavings,
+                    iStar,
+                    jStar,
+                    kStar,
+                    savings,
+                    tau,
+                    tau_prime,
+                    truckRoute,
+                    sorties,
+                    availableUAVs,
+                    unavailableUAVs,
+                    energy,
+                    servedByUAV,
+                    truckRouteMap,
+                ) = calcCostTruck(
+                    j,
+                    t,
+                    maxSavings,
+                    iStar,
+                    jStar,
+                    kStar,
+                    savings,
+                    tau,
+                    tau_prime,
+                    truckRoute,
+                    sorties,
+                    availableUAVs,
+                    unavailableUAVs,
+                    energy,
+                    servedByUAV,
+                    truckRouteMap,
+                )
             else:
-                t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV = calcCostUAV(
-                    j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, sL, sR)
-            print("maxSavings: ", maxSavings)
+                (
+                    t,
+                    maxSavings,
+                    iStar,
+                    jStar,
+                    kStar,
+                    savings,
+                    tau,
+                    tau_prime,
+                    truckRoute,
+                    sorties,
+                    availableUAVs,
+                    unavailableUAVs,
+                    energy,
+                    servedByUAV,
+                    truckRouteMap,
+                ) = calcCostUAV(
+                    j,
+                    t,
+                    maxSavings,
+                    iStar,
+                    jStar,
+                    kStar,
+                    savings,
+                    tau,
+                    tau_prime,
+                    truckRoute,
+                    sorties,
+                    availableUAVs,
+                    unavailableUAVs,
+                    energy,
+                    servedByUAV,
+                    sL,
+                    sR,
+                    truckRouteMap,
+                )
         if maxSavings > 0:
-            maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV = performUpdate(
-                cPrime, iStar, jStar, kStar, maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV)
+            (
+                maxSavings,
+                savings,
+                tau,
+                tau_prime,
+                truckRoute,
+                t,
+                sorties,
+                availableUAVs,
+                unavailableUAVs,
+                energy,
+                servedByUAV,
+                truckRouteMap,
+            ) = performUpdate(
+                cPrime,
+                iStar,
+                jStar,
+                kStar,
+                maxSavings,
+                savings,
+                tau,
+                tau_prime,
+                truckRoute,
+                t,
+                sorties,
+                availableUAVs,
+                unavailableUAVs,
+                energy,
+                servedByUAV,
+                truckRouteMap,
+            )
             maxSavings = 0
         else:
             break
@@ -95,23 +263,73 @@ def solveFSTSP(cPrime, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime,
     return truckRoute, sorties, t
 
 
-def calcSavings(j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV):
+def calcSavings(
+    j,
+    t,
+    maxSavings,
+    iStar,
+    jStar,
+    kStar,
+    savings,
+    tau,
+    tau_prime,
+    truckRoute,
+    sorties,
+    availableUAVs,
+    unavailableUAVs,
+    energy,
+    servedByUAV,
+    truckRouteMap,
+):
     """
     Minimizes the difference between the drone and the truck arrivals at a single location. The simplifcation of our actual pseudocode is that we assume that the drone never has to wait for the truck to arrive at a location.
     """
-
+    # print(sorties)
     jIdx = truckRoute.index(j)
-    iIdx = jIdx - 1  # we need to test whether iIdx out of bounds.
+    iIdx = jIdx - 1
     kIdx = jIdx + 1
     i = truckRoute[iIdx]
     k = truckRoute[kIdx]
 
     savings = tau[i][j] + tau[j][k] - tau[i][k]
     # calculate a, b, j' and update savings.
-    return t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
+    return (
+        t,
+        maxSavings,
+        iStar,
+        jStar,
+        kStar,
+        savings,
+        tau,
+        tau_prime,
+        truckRoute,
+        sorties,
+        availableUAVs,
+        unavailableUAVs,
+        energy,
+        servedByUAV,
+        truckRouteMap,
+    )
 
 
-def calcCostTruck(j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV):
+def calcCostTruck(
+    j,
+    t,
+    maxSavings,
+    iStar,
+    jStar,
+    kStar,
+    savings,
+    tau,
+    tau_prime,
+    truckRoute,
+    sorties,
+    availableUAVs,
+    unavailableUAVs,
+    energy,
+    servedByUAV,
+    truckRouteMap,
+):
     """
     Computes the time saved by inserting j at different positions of the route. We assume that node j is initially being served by the truck.
     @param j: node to be inserted
@@ -123,22 +341,57 @@ def calcCostTruck(j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime
         i = truckRoute[iIdx]
         k = truckRoute[kIdx]
         cost = tau[i][j] + tau[j][k] - tau[i][k]
-        # print("truck cost:", cost)
         if cost < savings:
             feasible = True
             for d in set(unavailableUAVs[i] + unavailableUAVs[k]):
-                feasible = feasible and energy[d] - \
-                    cost > 0 and savings - cost <= maxSavings
+                feasible = (
+                    feasible and energy[d] - cost > 0 and savings - cost <= maxSavings
+                )
             if feasible:
                 servedByUAV[j] = -1
                 iStar = i
                 jStar = j
                 kStar = k
                 maxSavings = savings - cost
-    return t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
+    return (
+        t,
+        maxSavings,
+        iStar,
+        jStar,
+        kStar,
+        savings,
+        tau,
+        tau_prime,
+        truckRoute,
+        sorties,
+        availableUAVs,
+        unavailableUAVs,
+        energy,
+        servedByUAV,
+        truckRouteMap,
+    )
 
 
-def calcCostUAV(j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV, sL, sR):
+def calcCostUAV(
+    j,
+    t,
+    maxSavings,
+    iStar,
+    jStar,
+    kStar,
+    savings,
+    tau,
+    tau_prime,
+    truckRoute,
+    sorties,
+    availableUAVs,
+    unavailableUAVs,
+    energy,
+    servedByUAV,
+    sL,
+    sR,
+    truckRouteMap,
+):
     """
     Computes the time saved by assigning an available UAV to a node j that initially recieved tis delivery by truck.
     @param j: node to be inserted
@@ -151,22 +404,21 @@ def calcCostUAV(j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, 
         a = -1
         b = len(truckRoute) + 2
         jdict = sorties[d]
-        for (l, rv) in jdict.values():
-            lIdx = truckRoute.index(l)
-            rvIdx = truckRoute.index(rv)
+        for l, rv in jdict.values():
+            lIdx = truckRouteMap[l]
+            rvIdx = truckRouteMap[rv]
             a = rvIdx if rvIdx < jIdx and rvIdx > a else a
             b = lIdx if lIdx > jIdx and lIdx < b else b
         start = max(a, 0)
         end = min(b, len(truckRoute) - 1)
-        print("b, len(truckRoute) - 1: ", b)
-        print("drone, start, end: ", d, start, end)
         for iIdx in range(start, end + 1):
             i = truckRoute[iIdx]
             for kIdx in range(iIdx + 1, end + 1):
                 k = truckRoute[kIdx]
+                # print("i: ", i, "j: ", j, "k: ", k)
+                # print("tau prime size", len(tau_prime), len(tau_prime[0]))
                 if tau_prime[i][j] + tau_prime[j][k] <= energy[d]:
-                    cost = tau[i][j] + tau[j][k] - tau[i][k] + sL + sR
-                    print("cost, i, j, k: ", cost, i, j, k)
+                    cost = sL + sR
                     if savings - cost > maxSavings and i != j and j != k:
                         servedByUAV[j] = d
                         iStar = i
@@ -174,10 +426,43 @@ def calcCostUAV(j, t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, 
                         kStar = k
 
                         maxSavings = savings - cost
-    return t, maxSavings, iStar, jStar, kStar, savings, tau, tau_prime, truckRoute, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
+    return (
+        t,
+        maxSavings,
+        iStar,
+        jStar,
+        kStar,
+        savings,
+        tau,
+        tau_prime,
+        truckRoute,
+        sorties,
+        availableUAVs,
+        unavailableUAVs,
+        energy,
+        servedByUAV,
+        truckRouteMap,
+    )
 
 
-def performUpdate(cPrime, iStar, jStar, kStar, maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV):
+def performUpdate(
+    cPrime,
+    iStar,
+    jStar,
+    kStar,
+    maxSavings,
+    savings,
+    tau,
+    tau_prime,
+    truckRoute,
+    t,
+    sorties,
+    availableUAVs,
+    unavailableUAVs,
+    energy,
+    servedByUAV,
+    truckRouteMap,
+):
     """
     Performs the update of the truck route and the UAV sorties.
     """
@@ -189,17 +474,16 @@ def performUpdate(cPrime, iStar, jStar, kStar, maxSavings, savings, tau, tau_pri
         # what truck services before and after jIdx
         iPrime = truckRoute[jIdx - 1]
         kPrime = truckRoute[jIdx + 1]
-        truckSavings = tau[iPrime][jStar] + \
-            tau[jStar][kPrime] - tau[iPrime][kPrime]
+        truckSavings = tau[iPrime][jStar] + tau[jStar][kPrime] - tau[iPrime][kPrime]
 
         curr_d = servedByUAV[jStar]
 
-        energy[curr_d] -= (t[kIdx] - t[iIdx])
+        energy[curr_d] -= t[kIdx] - t[iIdx]
 
         for x in range(iIdx + 1, kIdx):
-            # print("available here:", availableUAVs[truckRoute[x]])
-            availableUAVs[truckRoute[x]].remove(curr_d)
-            unavailableUAVs[truckRoute[x]].append(curr_d)
+            if truckRoute[x] != -1:
+                availableUAVs[truckRoute[x]].remove(curr_d)
+                unavailableUAVs[truckRoute[x]].append(curr_d)
 
         for d in unavailableUAVs[jStar]:
             energy[d] += truckSavings
@@ -220,8 +504,7 @@ def performUpdate(cPrime, iStar, jStar, kStar, maxSavings, savings, tau, tau_pri
         # update sorties
         sorties[curr_d][jStar] = (iStar, kStar)
     else:
-        truckSavings = tau[iStar][jStar] + \
-            tau[jStar][kStar] - tau[iStar][kStar]
+        truckSavings = tau[iStar][jStar] + tau[jStar][kStar] - tau[iStar][kStar]
 
         # update truckRoute
         truckRoute.remove(jStar)
@@ -234,9 +517,11 @@ def performUpdate(cPrime, iStar, jStar, kStar, maxSavings, savings, tau, tau_pri
 
         # update unavailable, available uavs
         unavailableUAVs[jStar] = list(
-            set(unavailableUAVs[iStar] + unavailableUAVs[kStar]))
+            set(unavailableUAVs[iStar] + unavailableUAVs[kStar])
+        )
         availableUAVs[jStar] = list(
-            set(availableUAVs[iStar]).intersection(set(availableUAVs[kStar])))
+            set(availableUAVs[iStar]).intersection(set(availableUAVs[kStar]))
+        )
 
         # update drone energies
         for d in unavailableUAVs[jStar]:
@@ -245,7 +530,20 @@ def performUpdate(cPrime, iStar, jStar, kStar, maxSavings, savings, tau, tau_pri
         # displace all arrival times after the insertion of jStar into truckRoute
         for x in range(jIdx + 1, len(truckRoute)):
             t[x] += truckSavings
-    return maxSavings, savings, tau, tau_prime, truckRoute, t, sorties, availableUAVs, unavailableUAVs, energy, servedByUAV
+    return (
+        maxSavings,
+        savings,
+        tau,
+        tau_prime,
+        truckRoute,
+        t,
+        sorties,
+        availableUAVs,
+        unavailableUAVs,
+        energy,
+        servedByUAV,
+        truckRouteMap,
+    )
 
 
 def main():
@@ -254,23 +552,23 @@ def main():
     """
 
     # generate data
-    data = cities.create_data_model()
+    data = grid.create_data_model()
     # data = grid.generate_data(200, 625)
     # data = rural.generate_data(200, 625)
 
     # get the truck route
-    truckRoute, t = cities.solveTSP()
+    truckRoute, t = grid.solveTSP()
 
-    # get the cPrime set
-    cPrime = [2, 3, 6]
+    # get the UAV eligible nodes. Note the depot, {nodes 0, len_route}, cannot be included as eligible nodes.
+    cPrime = [2, 3, 6, 7]
 
     # get the number of drones
-    num_drones = 3
+    num_drones = 5
 
     sL = 0
     sR = 0
     # get the battery budget
-    B = float("inf")
+    B = float('inf')
 
     # solve the MFSHC problem
     solveMFSHC(num_drones, B, truckRoute, t, data, cPrime, sL, sR)

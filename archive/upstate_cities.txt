@@ -1,0 +1,1 @@
+# tri_state_area_cities = ["601 1st Street, Ithaca NY", "1259 Trumansburg Road,Ithaca NY", "107 Hoy Road Ithaca NY", "500 South Meadow Street, Ithaca, NY", "103 Southwoods Drive, Ithaca NY", "1 Culligan Dr, Ithaca NY", "40 Catherwood Road, Ithaca NY", "953 Danby Rd, Ithaca NY", "111 Genung Rd, Ithaca NY", "272 Enfield Falls Rd, Ithaca NY"]

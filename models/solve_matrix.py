@@ -22,7 +22,7 @@ def create_data_model(distance_matrix):
 
     for i in range(len(tau)):
         for j in range(len(tau[i])):
-            tau_prime[i][j] = (tau[i][j] / 5)
+            tau_prime[i][j] = (tau[i][j] / 2)
 
     data["tau_prime"] = tau_prime
 

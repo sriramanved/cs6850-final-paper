@@ -42,7 +42,7 @@ def create_data_model():
     """Stores the data for the problem."""
     data = {}
 
-    n = 3  # grid size parameter. n x n grid --> n^2 x n^2 distance matrices
+    n = 4  # grid size parameter. n x n grid --> n^2 x n^2 distance matrices
 
     # Create distance matrices
     data["distance_matrix"] = create_distance_matrix(n)
