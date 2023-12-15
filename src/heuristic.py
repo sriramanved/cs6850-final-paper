@@ -116,7 +116,6 @@ def solveFSTSP(
     iter = 0
     while iter < max_iter:
         print("WORKING AT ITERATION:", iter)
-        # print("beginning cPrime: ", cPrime)
         for j in cPrime:
             (
                 t,
@@ -284,7 +283,6 @@ def calcSavings(
     """
     Minimizes the difference between the drone and the truck arrivals at a single location. The simplifcation of our actual pseudocode is that we assume that the drone never has to wait for the truck to arrive at a location.
     """
-    # print(sorties)
     jIdx = truckRoute.index(j)
     iIdx = jIdx - 1
     kIdx = jIdx + 1
@@ -415,8 +413,6 @@ def calcCostUAV(
             i = truckRoute[iIdx]
             for kIdx in range(iIdx + 1, end + 1):
                 k = truckRoute[kIdx]
-                # print("i: ", i, "j: ", j, "k: ", k)
-                # print("tau prime size", len(tau_prime), len(tau_prime[0]))
                 if tau_prime[i][j] + tau_prime[j][k] <= energy[d]:
                     cost = sL + sR
                     if savings - cost > maxSavings and i != j and j != k:
