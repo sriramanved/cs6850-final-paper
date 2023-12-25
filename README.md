@@ -12,8 +12,10 @@ world scenarios, highlighting its potential to reduce delivery times for distrib
 ### Key Contributions
 We introduce a hybrid algorithm, evolving from the Flying Sidekick Traveling Salesman Problem (FSTSP), tailored for the simultaneous deployment of multiple drones. Our paper examines distinct graph structures representing various urban and rural layouts, assessing how adaptations to existing algorithms can optimize delivery strategies. We utilized Google's Distance Matrix API and OR Tools TSP Solver for simulating the performance of our algorithm on different graph structures, highlighting its real-world applicability.
 
+
+
 ### Repository Content
-- Paper: [Final Paper](https://drive.google.com/file/d/11b3592JGiaqhbgfUliPruMYCQ2TEvinX/view?usp=drive_link) — A detailed exposition of our research findings and methodologies.
+- Paper: [Final Paper](https://drive.google.com/file/d/1qm-nJ67UYnhKZ-Xmie1mZ4q3v7t-r8oz/view?usp=sharing) — A detailed exposition of our research findings and methodologies.
 - Code: The algorithms and data analysis scripts used in our study, showcasing our heuristic approach to drone scheduling.
 - Models: The constructed models we used to examine performance on different graph structures. 
 
